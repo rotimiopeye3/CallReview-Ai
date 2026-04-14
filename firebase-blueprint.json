@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "CallReview": {
+      "title": "Call Review",
+      "description": "A review of a call recording, including transcription and AI analysis.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "filename": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "transcript": { "type": "string" },
+        "analysis": { "type": "string" },
+        "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral"] },
+        "userId": { "type": "string" }
+      },
+      "required": ["filename", "timestamp", "transcript", "analysis", "userId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/callReviews/{reviewId}": {
+      "schema": "CallReview",
+      "description": "Collection of call reviews."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles."
+    }
+  }
+}

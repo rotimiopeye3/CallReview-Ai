@@ -1,0 +1,84 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required)
+//   - email: string (required)
+//   - displayName: string (optional)
+//   - role: string (enum: ['admin', 'user'])
+//
+// Collection: callReviews
+// Document ID: {reviewId}
+// Fields:
+//   - id: string
+//   - filename: string (required)
+//   - timestamp: timestamp (required)
+//   - transcript: string (required)
+//   - analysis: string (required)
+//   - sentiment: string (enum: ['positive', 'negative', 'neutral'])
+//   - userId: string (required)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "rotimiopeye3@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string &&
+             data.email is string &&
+             (!('role' in data) || data.role in ['admin', 'user']);
+    }
+
+    function isValidCallReview(data) {
+      return data.keys().hasAll(['filename', 'timestamp', 'transcript', 'analysis', 'userId']) &&
+             data.filename is string && data.filename.size() < 255 &&
+             data.transcript is string && data.transcript.size() < 100000 &&
+             data.analysis is string && data.analysis.size() < 10000 &&
+             data.userId == request.auth.uid &&
+             (!('sentiment' in data) || data.sentiment in ['positive', 'negative', 'neutral']);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(userId) && (!('role' in request.resource.data) || request.resource.data.role == 'user') || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(userId) && request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /callReviews/{reviewId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidCallReview(request.resource.data);
+      allow update: if isAuthenticated() && isValidCallReview(request.resource.data) && 
+                    (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}

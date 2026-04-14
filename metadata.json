@@ -1,0 +1,6 @@
+{
+  "name": "CallReview AI",
+  "description": "Automated audio call transcription and sentiment analysis dashboard using Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
